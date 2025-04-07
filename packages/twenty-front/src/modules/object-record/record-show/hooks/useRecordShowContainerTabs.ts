@@ -141,7 +141,7 @@ export const useRecordShowContainerTabs = (
               ifRelationsMissing: [],
             },
           },
-          pets: {
+          reccomendations: {
             title: 'Reccomendations',
             position: 700,
             Icon: IconCar,
