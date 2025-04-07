@@ -3,6 +3,7 @@ import { EmailThreads } from '@/activities/emails/components/EmailThreads';
 import { Attachments } from '@/activities/files/components/Attachments';
 import { Notes } from '@/activities/notes/components/Notes';
 import { Recs } from '@/activities/rec/components/Recs';
+import { SMSTexts } from '@/activities/smstexts/components/SMSTexts';
 import { ObjectTasks } from '@/activities/tasks/components/ObjectTasks';
 import { TimelineActivities } from '@/activities/timeline-activities/components/TimelineActivities';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
@@ -110,5 +111,8 @@ export const CardComponents: Record<CardType, CardComponentType> = {
   ),
   [CardType.RecCard]: ({ targetableObject }) => (
     <Recs targetableObject={targetableObject} />
+  ),
+  [CardType.SMSTextCard]: ({ targetableObject }) => (
+    <SMSTexts targetableObject={targetableObject} />
   ),
 };
