@@ -1,28 +1,36 @@
-import { ActivityList } from '@/activities/components/ActivityList';
-import { ActivityRow } from '@/activities/components/ActivityRow';
+import { SMSTextCard } from '@/activities/smstexts/components/SMSTextCard';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
-import { SMSText, TwilioMessage } from '@/activities/types/SMSText';
+import {
+  SMSText as SMSTextType,
+  TwilioMessage,
+} from '@/activities/types/SMSText';
+
 import { useFindOneRecord } from '@/object-record/hooks/useFindOneRecord';
 import { Person } from '@/people/types/Person';
 import styled from '@emotion/styled';
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import { H1Title, H1TitleFontColor, Section } from 'twenty-ui';
-import { formatToHumanReadableDate } from '~/utils/date-utils';
 
 // Styled components copied from EmailThread
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(6)};
-  padding: ${({ theme }) => theme.spacing(6, 6, 2)};
-  height: 100%;
+  padding: ${({ theme }) => theme.spacing(6, 6, 0, 6)};
+  height: 97%;
   overflow: auto;
 `;
 
 const StyledScrollableContainer = styled.div`
-  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 auto;
+  max-height: 60vh;
+  max-width: 50vh;
   overflow: auto;
+  font-family: sans-serif;
 `;
 const StyledH1Title = styled(H1Title)`
   display: flex;
@@ -30,25 +38,6 @@ const StyledH1Title = styled(H1Title)`
 `;
 const StyledTextCount = styled.span`
   color: ${({ theme }) => theme.font.color.light};
-`;
-const StyledSenderNames = styled.span`
-  display: flex;
-  margin: ${({ theme }) => theme.spacing(0, 1)};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-const StyledBody = styled.span`
-  color: ${({ theme }) => theme.font.color.tertiary};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-const StyledReceivedAt = styled.div`
-  font-size: ${({ theme }) => theme.font.size.sm};
-  font-weight: ${({ theme }) => theme.font.weight.regular};
-  padding: ${({ theme }) => theme.spacing(0, 1)};
-  margin-left: auto;
 `;
 
 export const SMSTexts = ({
@@ -79,6 +68,7 @@ export const SMSTexts = ({
       const personPhoneNumber = `${person.phones.primaryPhoneCallingCode}${person.phones.primaryPhoneNumber}`;
 
       try {
+        // currently doesn't filter for delivered success status
         const [toResponse, fromResponse] = await Promise.all([
           await axios.get(
             `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?To=${personPhoneNumber}`,
@@ -145,18 +135,10 @@ export const SMSTexts = ({
         />
 
         <StyledScrollableContainer ref={scrollRef}>
-          <ActivityList>
-            {transformedTexts?.map((text: SMSText) => (
-              // can't click on each text
-              <ActivityRow onClick={() => {}} key={text.id}>
-                <StyledSenderNames>{text.sender}</StyledSenderNames>
-                <StyledBody>{text.body}</StyledBody>
-                <StyledReceivedAt>
-                  {formatToHumanReadableDate(text.date)}
-                </StyledReceivedAt>
-              </ActivityRow>
-            ))}
-          </ActivityList>
+          {transformedTexts?.map((text: SMSTextType) => (
+            // eslint-disable-next-line react/jsx-props-no-spreading
+            <SMSTextCard {...text} key={text.id}></SMSTextCard>
+          ))}
         </StyledScrollableContainer>
       </Section>
     </StyledContainer>
