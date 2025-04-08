@@ -1,4 +1,5 @@
 import { SMSTextCard } from '@/activities/smstexts/components/SMSTextCard';
+import { UserViewed } from '@/activities/smstexts/components/types/SMSTextProps';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
 import {
   SMSText as SMSTextType,
@@ -46,12 +47,17 @@ export const SMSTexts = ({
   targetableObject: ActivityTargetableObject;
 }) => {
   const [textData, setTextData] = useState<any[]>([]);
+  const [userViewed, setUserViewed] = useState<UserViewed>({
+    phone: 'default phone',
+    name: 'default name',
+  });
 
   const { record: person, loading } = useFindOneRecord<Person>({
     objectNameSingular: targetableObject.targetObjectNameSingular,
     objectRecordId: targetableObject.id,
     recordGqlFields: {
       phones: true,
+      name: true,
     },
   });
 
@@ -68,7 +74,6 @@ export const SMSTexts = ({
       const personPhoneNumber = `${person.phones.primaryPhoneCallingCode}${person.phones.primaryPhoneNumber}`;
 
       try {
-        // currently doesn't filter for delivered success status
         const [toResponse, fromResponse] = await Promise.all([
           await axios.get(
             `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?To=${personPhoneNumber}`,
@@ -94,11 +99,20 @@ export const SMSTexts = ({
           ...toResponse.data.messages,
           ...fromResponse.data.messages,
         ];
-        const textsSortedByDateDescending = texts.sort(
+        // .filter(
+        //   (text) => text.status !== 'undelivered' && text.status !== 'failed',
+        // );
+
+        const textsSortedByDateAscending = texts.sort(
           (a, b) =>
             new Date(a.date_sent).valueOf() - new Date(b.date_sent).valueOf(),
         );
-        setTextData(textsSortedByDateDescending);
+        setTextData(textsSortedByDateAscending);
+        setUserViewed({
+          phone: personPhoneNumber,
+          name: `${person.name.firstName} ${person.name.lastName}`,
+        });
+
         //   console.log('Twilio response sorted:', textsSortedByDateDescending);
       } catch (error) {
         console.error('Error fetching Twilio messages:', error);
@@ -136,8 +150,11 @@ export const SMSTexts = ({
 
         <StyledScrollableContainer ref={scrollRef}>
           {transformedTexts?.map((text: SMSTextType) => (
-            // eslint-disable-next-line react/jsx-props-no-spreading
-            <SMSTextCard {...text} key={text.id}></SMSTextCard>
+            <SMSTextCard
+              text={text}
+              userViewed={userViewed}
+              key={text.id}
+            ></SMSTextCard>
           ))}
         </StyledScrollableContainer>
       </Section>
