@@ -8,8 +8,8 @@ const StyledMessage = styled.div`
   border-radius: 1.5rem;
   display: flex;
   gap: ${({ theme }) => theme.spacing(2)};
-  /* height: ${({ theme }) => theme.spacing(12)}; */
   max-width: 60%;
+  // TODO: calc from theme
   padding: 0.75rem 1rem;
   position: relative;
   overflow-wrap: break-word;

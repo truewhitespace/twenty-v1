@@ -1,3 +1,4 @@
+import { SkeletonLoader } from '@/activities/components/SkeletonLoader';
 import { SMSTextCard } from '@/activities/smstexts/components/SMSTextCard';
 import { UserViewed } from '@/activities/smstexts/components/types/SMSTextProps';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
@@ -11,15 +12,23 @@ import { Person } from '@/people/types/Person';
 import styled from '@emotion/styled';
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
-import { H1Title, H1TitleFontColor, Section } from 'twenty-ui';
+import {
+  AnimatedPlaceholder,
+  AnimatedPlaceholderEmptyContainer,
+  AnimatedPlaceholderEmptySubTitle,
+  AnimatedPlaceholderEmptyTextContainer,
+  AnimatedPlaceholderEmptyTitle,
+  EMPTY_PLACEHOLDER_TRANSITION_PROPS,
+  H1Title,
+  H1TitleFontColor,
+  Section,
+} from 'twenty-ui';
 
 // Styled components copied from EmailThread
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing(6)};
   padding: ${({ theme }) => theme.spacing(6, 6, 0, 6)};
-  height: 97%;
   overflow: auto;
 `;
 
@@ -28,8 +37,8 @@ const StyledScrollableContainer = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   margin: 0 auto;
+  // TODO: calculate from theme spacing
   max-height: 60vh;
-  max-width: 50vh;
   overflow: auto;
   font-family: sans-serif;
 `;
@@ -41,12 +50,39 @@ const StyledTextCount = styled.span`
   color: ${({ theme }) => theme.font.color.light};
 `;
 
+const StyledMessageSendContainer = styled.div`
+  justify-content: flex-end;
+  display: flex;
+  flex-direction: row;
+  margin: ${({ theme }) => theme.spacing(6, 0)};
+`;
+
+const StyledInput = styled.input`
+  flex: 1;
+  border: 1px solid;
+  border-radius: 1.5rem;
+  background-color: transparent;
+  font-size: ${({ theme }) => theme.font.size.md};
+  margin-right: ${({ theme }) => theme.spacing(5)};
+  padding: ${({ theme }) => theme.spacing(2)};
+  max-width: ${({ theme }) => theme.spacing(50)};
+`;
+
+const StyledButton = styled.button`
+  background: ${({ theme }) => theme.background.transparent.light};
+  border: 1px solid ${({ theme }) => theme.border.color.medium};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing(2, 4)};
+`;
+
 export const SMSTexts = ({
   targetableObject,
 }: {
   targetableObject: ActivityTargetableObject;
 }) => {
   const [textData, setTextData] = useState<any[]>([]);
+  const [isFetchDone, setIsFetchDone] = useState<boolean>(false);
   const [userViewed, setUserViewed] = useState<UserViewed>({
     phone: 'default phone',
     name: 'default name',
@@ -103,16 +139,12 @@ export const SMSTexts = ({
         //   (text) => text.status !== 'undelivered' && text.status !== 'failed',
         // );
 
-        const textsSortedByDateAscending = texts.sort(
-          (a, b) =>
-            new Date(a.date_sent).valueOf() - new Date(b.date_sent).valueOf(),
-        );
-        setTextData(textsSortedByDateAscending);
+        setTextData(texts);
         setUserViewed({
           phone: personPhoneNumber,
           name: `${person.name.firstName} ${person.name.lastName}`,
         });
-
+        setIsFetchDone(true);
         //   console.log('Twilio response sorted:', textsSortedByDateDescending);
       } catch (error) {
         console.error('Error fetching Twilio messages:', error);
@@ -128,12 +160,36 @@ export const SMSTexts = ({
     }
   }, [textData]);
 
-  const transformedTexts = textData.map((text: TwilioMessage) => ({
-    id: text.sid,
-    sender: text.from,
-    body: text.body,
-    date: new Date(text.date_sent),
-  }));
+  const transformedTexts = textData
+    .map((text: TwilioMessage) => ({
+      id: text.sid,
+      sender: text.from,
+      body: text.body,
+      date: new Date(text.date_sent),
+    }))
+    // sort in ascending order by date
+    .sort((a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf());
+
+  if (!isFetchDone) {
+    return <SkeletonLoader />;
+  } else if (!transformedTexts || transformedTexts.length === 0) {
+    return (
+      <AnimatedPlaceholderEmptyContainer
+        // eslint-disable-next-line react/jsx-props-no-spreading
+        {...EMPTY_PLACEHOLDER_TRANSITION_PROPS}
+      >
+        <AnimatedPlaceholder type="emptyInbox" />
+        <AnimatedPlaceholderEmptyTextContainer>
+          <AnimatedPlaceholderEmptyTitle>
+            No Message History
+          </AnimatedPlaceholderEmptyTitle>
+          <AnimatedPlaceholderEmptySubTitle>
+            No SMS exchange has occured yet with this record.
+          </AnimatedPlaceholderEmptySubTitle>
+        </AnimatedPlaceholderEmptyTextContainer>
+      </AnimatedPlaceholderEmptyContainer>
+    );
+  }
 
   return (
     <StyledContainer>
@@ -157,6 +213,13 @@ export const SMSTexts = ({
             ></SMSTextCard>
           ))}
         </StyledScrollableContainer>
+        <StyledMessageSendContainer>
+          <StyledInput
+            placeholder={'Text message'}
+            // onChange={handleInputChange}
+          ></StyledInput>
+          <StyledButton>Send</StyledButton>
+        </StyledMessageSendContainer>
       </Section>
     </StyledContainer>
   );
