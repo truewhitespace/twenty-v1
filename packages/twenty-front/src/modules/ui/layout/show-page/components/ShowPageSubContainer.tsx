@@ -96,7 +96,6 @@ export const ShowPageSubContainer = ({
     if (!activeTab?.cards?.length) return null;
 
     return activeTab.cards.map((card, index) => {
-      // console.log('card: ', card);
       const CardComponent = CardComponents[card.type];
       return CardComponent ? (
         <CardComponent
@@ -112,8 +111,6 @@ export const ShowPageSubContainer = ({
 
   const displaySummaryAndFields =
     layout && !layout.hideSummaryAndFields && !isMobile && !isInRightDrawer;
-
-  // console.log('summary card: ', summaryCard);
 
   return (
     <TabListComponentInstanceContext.Provider

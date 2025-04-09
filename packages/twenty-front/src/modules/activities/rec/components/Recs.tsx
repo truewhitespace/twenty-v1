@@ -26,13 +26,7 @@ export const Recs = ({
 }: {
   targetableObject: ActivityTargetableObject;
 }) => {
-  const { records, loading } = useRecs();
-
-  // const hasObjectReadOnlyPermission = useHasObjectReadOnlyPermission();
-
-  // const openCreateActivity = useOpenCreateActivityDrawer({
-  //   activityObjectNameSingular: CoreObjectNameSingular.Vehicle,
-  // });
+  const { records, loading } = useRecs(targetableObject);
 
   const isRecsEmpty = !records || records.length === 0;
 
