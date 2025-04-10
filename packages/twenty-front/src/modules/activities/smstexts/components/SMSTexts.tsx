@@ -34,12 +34,12 @@ const StyledContainer = styled.div`
 const StyledScrollableContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: ${({ theme }) => theme.spacing(2)};
   margin: 0 auto;
-  // TODO: calculate from theme spacing
-  max-height: 60vh;
+  // TODO: in full record view - the log should take up more vertical space. how to use percents here if parent is not fixed
+  height: ${({ theme }) => theme.spacing(105)};
   overflow: auto;
-  font-family: sans-serif;
+  font-family: inherit;
 `;
 const StyledH1Title = styled(H1Title)`
   display: flex;
@@ -49,26 +49,29 @@ const StyledTextCount = styled.span`
   color: ${({ theme }) => theme.font.color.light};
 `;
 const StyledMessageSendContainer = styled.div`
-  justify-content: flex-end;
+  align-items: center;
   display: flex;
-  flex-direction: row;
+  float: right;
+  justify-content: flex-end;
   margin: ${({ theme }) => theme.spacing(6, 0)};
+  // Same as messages
+  width: 60%;
 `;
-const StyledInput = styled.input`
-  flex: 1;
+const StyledTextArea = styled.textarea`
   border: 1px solid;
   border-radius: 1.5rem;
-  background-color: transparent;
+  flex: 1;
+  font-family: inherit;
   font-size: ${({ theme }) => theme.font.size.md};
   margin-right: ${({ theme }) => theme.spacing(5)};
   padding: ${({ theme }) => theme.spacing(2)};
-  max-width: ${({ theme }) => theme.spacing(50)};
+  resize: none;
 `;
 const StyledButton = styled.button`
   background: ${({ theme }) => theme.background.transparent.light};
   border: 1px solid ${({ theme }) => theme.border.color.medium};
   border-radius: ${({ theme }) => theme.border.radius.md};
-  align-items: center;
+  height: 50%;
   padding: ${({ theme }) => theme.spacing(2, 4)};
 `;
 
@@ -168,17 +171,18 @@ export const SMSTexts = ({
   };
 
   // Send message handlers
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSendMessageBox(event.target.value);
   };
-  const handleEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleEnter = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter') {
+      event.preventDefault();
       handleSend();
     }
   };
   const handleSend = () => {
+    sendText(sendMessageBox.trim());
     setSendMessageBox('');
-    sendText(sendMessageBox);
   };
 
   // Get info for current user being viewed
@@ -258,12 +262,13 @@ export const SMSTexts = ({
           ))}
         </StyledScrollableContainer>
         <StyledMessageSendContainer>
-          <StyledInput
-            placeholder={'Text message'}
+          <StyledTextArea
+            placeholder={'Enter message'}
             value={sendMessageBox}
             onChange={handleInputChange}
             onKeyDown={handleEnter}
-          ></StyledInput>
+            rows={2}
+          ></StyledTextArea>
           <StyledButton onClick={handleSend}>Send</StyledButton>
         </StyledMessageSendContainer>
       </Section>
