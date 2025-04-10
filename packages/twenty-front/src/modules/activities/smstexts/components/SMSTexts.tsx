@@ -24,14 +24,13 @@ import {
   Section,
 } from 'twenty-ui';
 
-// Styled components copied from EmailThread
+// Some styled components copied from EmailThread
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: ${({ theme }) => theme.spacing(6, 6, 0, 6)};
   overflow: auto;
 `;
-
 const StyledScrollableContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -49,14 +48,12 @@ const StyledH1Title = styled(H1Title)`
 const StyledTextCount = styled.span`
   color: ${({ theme }) => theme.font.color.light};
 `;
-
 const StyledMessageSendContainer = styled.div`
   justify-content: flex-end;
   display: flex;
   flex-direction: row;
   margin: ${({ theme }) => theme.spacing(6, 0)};
 `;
-
 const StyledInput = styled.input`
   flex: 1;
   border: 1px solid;
@@ -67,7 +64,6 @@ const StyledInput = styled.input`
   padding: ${({ theme }) => theme.spacing(2)};
   max-width: ${({ theme }) => theme.spacing(50)};
 `;
-
 const StyledButton = styled.button`
   background: ${({ theme }) => theme.background.transparent.light};
   border: 1px solid ${({ theme }) => theme.border.color.medium};
@@ -87,7 +83,105 @@ export const SMSTexts = ({
     phone: 'default phone',
     name: 'default name',
   });
+  const [sendMessageBox, setSendMessageBox] = useState<string>('');
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  const apiUrl = process.env.REACT_APP_TWILIO_API_URL;
+  const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID as string;
+  const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN as string;
+
+  // Twilio API handlers
+  const fetchTexts = async () => {
+    if (!person || loading) return;
+
+    const personPhoneNumber = `${person.phones.primaryPhoneCallingCode}${person.phones.primaryPhoneNumber}`;
+    setUserViewed({
+      phone: personPhoneNumber,
+      name: `${person.name.firstName} ${person.name.lastName}`,
+    });
+
+    try {
+      const [toResponse, fromResponse] = await Promise.all([
+        // Future: filter explicitly for to/from this specific agent's (logged in user's) phone number.
+        await axios.get(
+          `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?To=${personPhoneNumber}`,
+          {
+            auth: {
+              username: accountSid,
+              password: authToken,
+            },
+          },
+        ),
+        await axios.get(
+          `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?From=${personPhoneNumber}`,
+          {
+            auth: {
+              username: accountSid,
+              password: authToken,
+            },
+          },
+        ),
+      ]);
+
+      const texts = [
+        ...toResponse.data.messages,
+        ...fromResponse.data.messages,
+      ];
+      // .filter(
+      //   (text) => text.status !== 'undelivered' && text.status !== 'failed',
+      // );
+
+      setTextData(texts);
+      setIsFetchDone(true);
+    } catch (error) {
+      console.error('Error fetching Twilio messages:', error);
+      throw error;
+    }
+  };
+
+  const sendText = async (message: string) => {
+    // eslint-disable-next-line no-useless-catch
+    try {
+      const requestData = {
+        // Hard-coded our twilio number
+        From: '+18666075087',
+        To: userViewed.phone,
+        Body: message,
+      };
+      const response = await axios.post(
+        `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        requestData,
+        {
+          auth: {
+            username: accountSid,
+            password: authToken,
+          },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      );
+      console.log('Send message twilio response: ', response);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Send message handlers
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSendMessageBox(event.target.value);
+  };
+  const handleEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSend();
+    }
+  };
+  const handleSend = () => {
+    setSendMessageBox('');
+    sendText(sendMessageBox);
+  };
+
+  // Get info for current user being viewed
   const { record: person, loading } = useFindOneRecord<Person>({
     objectNameSingular: targetableObject.targetObjectNameSingular,
     objectRecordId: targetableObject.id,
@@ -97,61 +191,10 @@ export const SMSTexts = ({
     },
   });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
+  // Fetch messages once userViewed is populated, on page render
   useEffect(() => {
-    // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
-    async function fetchTexts() {
-      if (!person || loading) return;
-
-      const apiUrl = process.env.REACT_APP_TWILIO_API_URL;
-      const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID as string;
-      const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN as string;
-      const personPhoneNumber = `${person.phones.primaryPhoneCallingCode}${person.phones.primaryPhoneNumber}`;
-
-      try {
-        const [toResponse, fromResponse] = await Promise.all([
-          await axios.get(
-            `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?To=${personPhoneNumber}`,
-            {
-              auth: {
-                username: accountSid,
-                password: authToken,
-              },
-            },
-          ),
-          await axios.get(
-            `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?From=${personPhoneNumber}`,
-            {
-              auth: {
-                username: accountSid,
-                password: authToken,
-              },
-            },
-          ),
-        ]);
-
-        const texts = [
-          ...toResponse.data.messages,
-          ...fromResponse.data.messages,
-        ];
-        // .filter(
-        //   (text) => text.status !== 'undelivered' && text.status !== 'failed',
-        // );
-
-        setTextData(texts);
-        setUserViewed({
-          phone: personPhoneNumber,
-          name: `${person.name.firstName} ${person.name.lastName}`,
-        });
-        setIsFetchDone(true);
-        //   console.log('Twilio response sorted:', textsSortedByDateDescending);
-      } catch (error) {
-        console.error('Error fetching Twilio messages:', error);
-        throw error;
-      }
-    }
     fetchTexts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person, loading]);
 
   useEffect(() => {
@@ -167,12 +210,13 @@ export const SMSTexts = ({
       body: text.body,
       date: new Date(text.date_sent),
     }))
-    // sort in ascending order by date
+    // Sort in ascending order by date
     .sort((a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf());
 
+  // Loading screen or no records
   if (!isFetchDone) {
     return <SkeletonLoader />;
-  } else if (!transformedTexts || transformedTexts.length === 0) {
+  } else if (transformedTexts.length === 0) {
     return (
       <AnimatedPlaceholderEmptyContainer
         // eslint-disable-next-line react/jsx-props-no-spreading
@@ -216,9 +260,11 @@ export const SMSTexts = ({
         <StyledMessageSendContainer>
           <StyledInput
             placeholder={'Text message'}
-            // onChange={handleInputChange}
+            value={sendMessageBox}
+            onChange={handleInputChange}
+            onKeyDown={handleEnter}
           ></StyledInput>
-          <StyledButton>Send</StyledButton>
+          <StyledButton onClick={handleSend}>Send</StyledButton>
         </StyledMessageSendContainer>
       </Section>
     </StyledContainer>
