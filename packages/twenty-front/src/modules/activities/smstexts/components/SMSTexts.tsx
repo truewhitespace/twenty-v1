@@ -12,6 +12,7 @@ import { Person } from '@/people/types/Person';
 import styled from '@emotion/styled';
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
+import TextareaAutosize from 'react-textarea-autosize';
 import {
   AnimatedPlaceholder,
   AnimatedPlaceholderEmptyContainer,
@@ -24,12 +25,12 @@ import {
   Section,
 } from 'twenty-ui';
 
-// Some styled components copied from EmailThread
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: ${({ theme }) => theme.spacing(6, 6, 0, 6)};
-  overflow: auto;
+  // Override padding-bottom from ShowPageSubContainer
+  margin-bottom: ${({ theme }) => theme.spacing(-16)};
 `;
 const StyledScrollableContainer = styled.div`
   display: flex;
@@ -57,12 +58,11 @@ const StyledMessageSendContainer = styled.div`
   // Same as messages
   width: 60%;
 `;
-const StyledTextArea = styled.textarea`
+const StyledTextArea = styled(TextareaAutosize)`
   border: 1px solid;
   border-radius: 1.5rem;
   flex: 1;
   font-family: inherit;
-  font-size: ${({ theme }) => theme.font.size.md};
   margin-right: ${({ theme }) => theme.spacing(5)};
   padding: ${({ theme }) => theme.spacing(2)};
   resize: none;
@@ -73,6 +73,9 @@ const StyledButton = styled.button`
   border-radius: ${({ theme }) => theme.border.radius.md};
   height: 50%;
   padding: ${({ theme }) => theme.spacing(2, 4)};
+  :hover {
+    background: ${({ theme }) => theme.background.transparent.medium};
+  }
 `;
 
 export const SMSTexts = ({
@@ -217,7 +220,7 @@ export const SMSTexts = ({
     // Sort in ascending order by date
     .sort((a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf());
 
-  // Loading screen or no records
+  // Display loading screen or no records
   if (!isFetchDone) {
     return <SkeletonLoader />;
   } else if (transformedTexts.length === 0) {
