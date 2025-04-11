@@ -42,8 +42,8 @@ export const seedWorkspaces = async ({
   const workspaces: Record<string, WorkspaceSeederFields> = {
     [SEED_APPLE_WORKSPACE_ID]: {
       id: SEED_APPLE_WORKSPACE_ID,
-      displayName: 'Apple',
-      subdomain: 'apple',
+      displayName: 'ByRider',
+      subdomain: 'byrider',
       inviteHash: 'apple.dev-invite-hash',
       logo: 'https://twentyhq.github.io/placeholder-images/workspaces/apple-logo.png',
       activationStatus: WorkspaceActivationStatus.PENDING_CREATION, // will be set to active after default role creation
