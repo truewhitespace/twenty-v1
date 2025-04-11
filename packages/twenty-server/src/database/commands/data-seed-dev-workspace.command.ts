@@ -37,10 +37,12 @@ import { DataSourceEntity } from 'src/engine/metadata-modules/data-source/data-s
 import { DataSourceService } from 'src/engine/metadata-modules/data-source/data-source.service';
 import { FieldMetadataService } from 'src/engine/metadata-modules/field-metadata/field-metadata.service';
 import { ObjectMetadataService } from 'src/engine/metadata-modules/object-metadata/object-metadata.service';
-import { PETS_DATA_SEEDS } from 'src/engine/seeder/data-seeds/pets-data-seeds';
+import { DEALERSHIP_DATA_SEEDS } from 'src/engine/seeder/data-seeds/dealership-data-seeds';
 import { SURVEY_RESULTS_DATA_SEEDS } from 'src/engine/seeder/data-seeds/survey-results-data-seeds';
-import { PETS_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/pets-metadata-seeds';
+import { VEHICLE_DATA_SEEDS } from 'src/engine/seeder/data-seeds/vehicle-data-seeds';
+import { DEALERSHIP_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/dealership-metadata-seeds';
 import { SURVEY_RESULTS_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/survey-results-metadata-seeds';
+import { VEHICLE_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/vehicle-metadata-seeds';
 import { SeederService } from 'src/engine/seeder/seeder.service';
 import { shouldSeedWorkspaceFavorite } from 'src/engine/utils/should-seed-workspace-favorite';
 import { createWorkspaceViews } from 'src/engine/workspace-manager/standard-objects-prefill-data/create-workspace-views';
@@ -143,18 +145,32 @@ export class DataSeedWorkspaceCommand extends CommandRunner {
         dataSourceMetadata,
       );
 
-      await this.seederService.seedCustomObjects(
-        dataSourceMetadata.id,
-        workspaceId,
-        PETS_METADATA_SEEDS,
-        PETS_DATA_SEEDS,
-      );
+      // await this.seederService.seedCustomObjects(
+      //   dataSourceMetadata.id,
+      //   workspaceId,
+      //   PETS_METADATA_SEEDS,
+      //   PETS_DATA_SEEDS,
+      // );
 
       await this.seederService.seedCustomObjects(
         dataSourceMetadata.id,
         workspaceId,
         SURVEY_RESULTS_METADATA_SEEDS,
         SURVEY_RESULTS_DATA_SEEDS,
+      );
+
+      await this.seederService.seedCustomObjects(
+        dataSourceMetadata.id,
+        workspaceId,
+        VEHICLE_METADATA_SEEDS,
+        VEHICLE_DATA_SEEDS,
+      );
+
+      await this.seederService.seedCustomObjects(
+        dataSourceMetadata.id,
+        workspaceId,
+        DEALERSHIP_METADATA_SEEDS,
+        DEALERSHIP_DATA_SEEDS,
       );
     } catch (error) {
       this.logger.error(error);
