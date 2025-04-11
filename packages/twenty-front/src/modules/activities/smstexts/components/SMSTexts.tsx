@@ -1,28 +1,46 @@
-import { ActivityList } from '@/activities/components/ActivityList';
-import { ActivityRow } from '@/activities/components/ActivityRow';
+import { SkeletonLoader } from '@/activities/components/SkeletonLoader';
+import { SMSTextCard } from '@/activities/smstexts/components/SMSTextCard';
+import { UserViewed } from '@/activities/smstexts/components/types/SMSTextProps';
 import { ActivityTargetableObject } from '@/activities/types/ActivityTargetableEntity';
-import { SMSText, TwilioMessage } from '@/activities/types/SMSText';
+import {
+  SMSText as SMSTextType,
+  TwilioMessage,
+} from '@/activities/types/SMSText';
+
 import { useFindOneRecord } from '@/object-record/hooks/useFindOneRecord';
 import { Person } from '@/people/types/Person';
 import styled from '@emotion/styled';
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
-import { H1Title, H1TitleFontColor, Section } from 'twenty-ui';
-import { formatToHumanReadableDate } from '~/utils/date-utils';
+import TextareaAutosize from 'react-textarea-autosize';
+import {
+  AnimatedPlaceholder,
+  AnimatedPlaceholderEmptyContainer,
+  AnimatedPlaceholderEmptySubTitle,
+  AnimatedPlaceholderEmptyTextContainer,
+  AnimatedPlaceholderEmptyTitle,
+  EMPTY_PLACEHOLDER_TRANSITION_PROPS,
+  H1Title,
+  H1TitleFontColor,
+  Section,
+} from 'twenty-ui';
 
-// Styled components copied from EmailThread
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing(6)};
-  padding: ${({ theme }) => theme.spacing(6, 6, 2)};
-  height: 100%;
-  overflow: auto;
+  padding: ${({ theme }) => theme.spacing(6, 6, 0, 6)};
+  // Override padding-bottom from ShowPageSubContainer
+  margin-bottom: ${({ theme }) => theme.spacing(-16)};
 `;
-
 const StyledScrollableContainer = styled.div`
-  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing(2)};
+  margin: 0 auto;
+  // TODO: in full record view - the log should take up more vertical space. how to use percents here if parent is not fixed
+  height: ${({ theme }) => theme.spacing(105)};
   overflow: auto;
+  font-family: inherit;
 `;
 const StyledH1Title = styled(H1Title)`
   display: flex;
@@ -31,24 +49,33 @@ const StyledH1Title = styled(H1Title)`
 const StyledTextCount = styled.span`
   color: ${({ theme }) => theme.font.color.light};
 `;
-const StyledSenderNames = styled.span`
+const StyledMessageSendContainer = styled.div`
+  align-items: center;
   display: flex;
-  margin: ${({ theme }) => theme.spacing(0, 1)};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  float: right;
+  justify-content: flex-end;
+  margin: ${({ theme }) => theme.spacing(6, 0)};
+  // Same as messages
+  width: 60%;
 `;
-const StyledBody = styled.span`
-  color: ${({ theme }) => theme.font.color.tertiary};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+const StyledTextArea = styled(TextareaAutosize)`
+  border: 1px solid;
+  border-radius: 1.5rem;
+  flex: 1;
+  font-family: inherit;
+  margin-right: ${({ theme }) => theme.spacing(5)};
+  padding: ${({ theme }) => theme.spacing(2)};
+  resize: none;
 `;
-const StyledReceivedAt = styled.div`
-  font-size: ${({ theme }) => theme.font.size.sm};
-  font-weight: ${({ theme }) => theme.font.weight.regular};
-  padding: ${({ theme }) => theme.spacing(0, 1)};
-  margin-left: auto;
+const StyledButton = styled.button`
+  background: ${({ theme }) => theme.background.transparent.light};
+  border: 1px solid ${({ theme }) => theme.border.color.medium};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  height: 50%;
+  padding: ${({ theme }) => theme.spacing(2, 4)};
+  :hover {
+    background: ${({ theme }) => theme.background.transparent.medium};
+  }
 `;
 
 export const SMSTexts = ({
@@ -57,65 +84,124 @@ export const SMSTexts = ({
   targetableObject: ActivityTargetableObject;
 }) => {
   const [textData, setTextData] = useState<any[]>([]);
+  const [isFetchDone, setIsFetchDone] = useState<boolean>(false);
+  const [userViewed, setUserViewed] = useState<UserViewed>({
+    phone: 'default phone',
+    name: 'default name',
+  });
+  const [sendMessageBox, setSendMessageBox] = useState<string>('');
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  const apiUrl = process.env.REACT_APP_TWILIO_API_URL;
+  const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID as string;
+  const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN as string;
+
+  // Twilio API handlers
+  const fetchTexts = async () => {
+    if (!person || loading) return;
+
+    const personPhoneNumber = `${person.phones.primaryPhoneCallingCode}${person.phones.primaryPhoneNumber}`;
+    setUserViewed({
+      phone: personPhoneNumber,
+      name: `${person.name.firstName} ${person.name.lastName}`,
+    });
+
+    try {
+      const [toResponse, fromResponse] = await Promise.all([
+        // Future: filter explicitly for to/from this specific agent's (logged in user's) phone number.
+        await axios.get(
+          `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?To=${personPhoneNumber}`,
+          {
+            auth: {
+              username: accountSid,
+              password: authToken,
+            },
+          },
+        ),
+        await axios.get(
+          `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?From=${personPhoneNumber}`,
+          {
+            auth: {
+              username: accountSid,
+              password: authToken,
+            },
+          },
+        ),
+      ]);
+
+      const texts = [
+        ...toResponse.data.messages,
+        ...fromResponse.data.messages,
+      ];
+      // .filter(
+      //   (text) => text.status !== 'undelivered' && text.status !== 'failed',
+      // );
+
+      setTextData(texts);
+      setIsFetchDone(true);
+    } catch (error) {
+      console.error('Error fetching Twilio messages:', error);
+      throw error;
+    }
+  };
+
+  const sendText = async (message: string) => {
+    // eslint-disable-next-line no-useless-catch
+    try {
+      const requestData = {
+        // Hard-coded our twilio number
+        From: '+18666075087',
+        To: userViewed.phone,
+        Body: message,
+      };
+      const response = await axios.post(
+        `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        requestData,
+        {
+          auth: {
+            username: accountSid,
+            password: authToken,
+          },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      );
+      console.log('Send message twilio response: ', response);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Send message handlers
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSendMessageBox(event.target.value);
+  };
+  const handleEnter = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSend();
+    }
+  };
+  const handleSend = () => {
+    sendText(sendMessageBox.trim());
+    setSendMessageBox('');
+  };
+
+  // Get info for current user being viewed
   const { record: person, loading } = useFindOneRecord<Person>({
     objectNameSingular: targetableObject.targetObjectNameSingular,
     objectRecordId: targetableObject.id,
     recordGqlFields: {
       phones: true,
+      name: true,
     },
   });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
+  // Fetch messages once userViewed is populated, on page render
   useEffect(() => {
-    // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
-    async function fetchTexts() {
-      if (!person || loading) return;
-
-      const apiUrl = process.env.REACT_APP_TWILIO_API_URL;
-      const accountSid = process.env.REACT_APP_TWILIO_ACCOUNT_SID as string;
-      const authToken = process.env.REACT_APP_TWILIO_AUTH_TOKEN as string;
-      const personPhoneNumber = `${person.phones.primaryPhoneCallingCode}${person.phones.primaryPhoneNumber}`;
-
-      try {
-        const [toResponse, fromResponse] = await Promise.all([
-          await axios.get(
-            `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?To=${personPhoneNumber}`,
-            {
-              auth: {
-                username: accountSid,
-                password: authToken,
-              },
-            },
-          ),
-          await axios.get(
-            `${apiUrl}/2010-04-01/Accounts/${accountSid}/Messages.json?From=${personPhoneNumber}`,
-            {
-              auth: {
-                username: accountSid,
-                password: authToken,
-              },
-            },
-          ),
-        ]);
-
-        const texts = [
-          ...toResponse.data.messages,
-          ...fromResponse.data.messages,
-        ];
-        const textsSortedByDateDescending = texts.sort(
-          (a, b) =>
-            new Date(a.date_sent).valueOf() - new Date(b.date_sent).valueOf(),
-        );
-        setTextData(textsSortedByDateDescending);
-        //   console.log('Twilio response sorted:', textsSortedByDateDescending);
-      } catch (error) {
-        console.error('Error fetching Twilio messages:', error);
-        throw error;
-      }
-    }
     fetchTexts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person, loading]);
 
   useEffect(() => {
@@ -124,12 +210,37 @@ export const SMSTexts = ({
     }
   }, [textData]);
 
-  const transformedTexts = textData.map((text: TwilioMessage) => ({
-    id: text.sid,
-    sender: text.from,
-    body: text.body,
-    date: new Date(text.date_sent),
-  }));
+  const transformedTexts = textData
+    .map((text: TwilioMessage) => ({
+      id: text.sid,
+      sender: text.from,
+      body: text.body,
+      date: new Date(text.date_sent),
+    }))
+    // Sort in ascending order by date
+    .sort((a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf());
+
+  // Display loading screen or no records
+  if (!isFetchDone) {
+    return <SkeletonLoader />;
+  } else if (transformedTexts.length === 0) {
+    return (
+      <AnimatedPlaceholderEmptyContainer
+        // eslint-disable-next-line react/jsx-props-no-spreading
+        {...EMPTY_PLACEHOLDER_TRANSITION_PROPS}
+      >
+        <AnimatedPlaceholder type="emptyInbox" />
+        <AnimatedPlaceholderEmptyTextContainer>
+          <AnimatedPlaceholderEmptyTitle>
+            No Message History
+          </AnimatedPlaceholderEmptyTitle>
+          <AnimatedPlaceholderEmptySubTitle>
+            No SMS exchange has occured yet with this record.
+          </AnimatedPlaceholderEmptySubTitle>
+        </AnimatedPlaceholderEmptyTextContainer>
+      </AnimatedPlaceholderEmptyContainer>
+    );
+  }
 
   return (
     <StyledContainer>
@@ -145,19 +256,24 @@ export const SMSTexts = ({
         />
 
         <StyledScrollableContainer ref={scrollRef}>
-          <ActivityList>
-            {transformedTexts?.map((text: SMSText) => (
-              // can't click on each text
-              <ActivityRow onClick={() => {}} key={text.id}>
-                <StyledSenderNames>{text.sender}</StyledSenderNames>
-                <StyledBody>{text.body}</StyledBody>
-                <StyledReceivedAt>
-                  {formatToHumanReadableDate(text.date)}
-                </StyledReceivedAt>
-              </ActivityRow>
-            ))}
-          </ActivityList>
+          {transformedTexts?.map((text: SMSTextType) => (
+            <SMSTextCard
+              text={text}
+              userViewed={userViewed}
+              key={text.id}
+            ></SMSTextCard>
+          ))}
         </StyledScrollableContainer>
+        <StyledMessageSendContainer>
+          <StyledTextArea
+            placeholder={'Enter message'}
+            value={sendMessageBox}
+            onChange={handleInputChange}
+            onKeyDown={handleEnter}
+            rows={2}
+          ></StyledTextArea>
+          <StyledButton onClick={handleSend}>Send</StyledButton>
+        </StyledMessageSendContainer>
       </Section>
     </StyledContainer>
   );

@@ -57,6 +57,7 @@
     "docx": "^9.1.0",
     "file-saver": "^2.0.5",
     "local-cors-proxy": "^1.1.0",
+    "react-textarea-autosize": "^8.5.9",
     "recoil-sync": "^0.2.0",
     "transliteration": "^2.3.5",
     "twenty-shared": "workspace:*",
