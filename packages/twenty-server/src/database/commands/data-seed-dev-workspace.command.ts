@@ -38,10 +38,8 @@ import { DataSourceService } from 'src/engine/metadata-modules/data-source/data-
 import { FieldMetadataService } from 'src/engine/metadata-modules/field-metadata/field-metadata.service';
 import { ObjectMetadataService } from 'src/engine/metadata-modules/object-metadata/object-metadata.service';
 import { DEALERSHIP_DATA_SEEDS } from 'src/engine/seeder/data-seeds/dealership-data-seeds';
-import { SURVEY_RESULTS_DATA_SEEDS } from 'src/engine/seeder/data-seeds/survey-results-data-seeds';
 import { VEHICLE_DATA_SEEDS } from 'src/engine/seeder/data-seeds/vehicle-data-seeds';
 import { DEALERSHIP_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/dealership-metadata-seeds';
-import { SURVEY_RESULTS_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/survey-results-metadata-seeds';
 import { VEHICLE_METADATA_SEEDS } from 'src/engine/seeder/metadata-seeds/vehicle-metadata-seeds';
 import { SeederService } from 'src/engine/seeder/seeder.service';
 import { shouldSeedWorkspaceFavorite } from 'src/engine/utils/should-seed-workspace-favorite';
@@ -152,12 +150,12 @@ export class DataSeedWorkspaceCommand extends CommandRunner {
       //   PETS_DATA_SEEDS,
       // );
 
-      await this.seederService.seedCustomObjects(
-        dataSourceMetadata.id,
-        workspaceId,
-        SURVEY_RESULTS_METADATA_SEEDS,
-        SURVEY_RESULTS_DATA_SEEDS,
-      );
+      // await this.seederService.seedCustomObjects(
+      //   dataSourceMetadata.id,
+      //   workspaceId,
+      //   SURVEY_RESULTS_METADATA_SEEDS,
+      //   SURVEY_RESULTS_DATA_SEEDS,
+      // );
 
       await this.seederService.seedCustomObjects(
         dataSourceMetadata.id,
